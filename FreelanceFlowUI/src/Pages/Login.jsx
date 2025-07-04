@@ -4,9 +4,13 @@ import { login } from "../ServiceAPI/loginAPI";
 import { useContext } from "react";
 import { AuthContext } from "../context/authContext";
 import { useNavigate } from "react-router-dom";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
+import Select from "react-select";
+import { roleType } from "../middleware/Utils";
 
 const LoginPage = () => {
   const [error, setError] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
   const { isAuthnticated, setIsAuthnticated, currentUser, setCurrentUser } =
     useContext(AuthContext);
   const navigate = useNavigate();
@@ -21,6 +25,13 @@ const LoginPage = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleRoleChange = (value) => {
+    setFormData((prev) => ({
+      ...prev,
+      role: value.value,
+    }));
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     let isValid = false;
@@ -30,7 +41,10 @@ const LoginPage = () => {
       formData.email === "" ||
       formData.password === null ||
       formData.password === undefined ||
-      formData.password === ""
+      formData.password === "" ||
+      formData.role === null ||
+      formData.role === undefined ||
+      formData.role === ""
     ) {
       setError(true);
       isValid = true;
@@ -38,6 +52,7 @@ const LoginPage = () => {
     const api_params = {
       email: formData.email,
       password: formData.password,
+      role: formData.role,
     };
     if (!isValid) {
       LoginApi(api_params);
@@ -93,7 +108,7 @@ const LoginPage = () => {
           </div>
 
           {/* Password */}
-          <div>
+          <div className="relative">
             <label
               htmlFor="password"
               className="block text-sm font-medium text-[#0F172A] mb-1"
@@ -101,24 +116,26 @@ const LoginPage = () => {
               Password<span className="text-red-500">*</span>
             </label>
             <input
-              type="password"
+              type={showPassword ? "text" : "password"}
               name="password"
               id="password"
               value={formData.password}
               onChange={handleChange}
               required
               minLength={6}
-              className="w-full px-4 py-2 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
+              className="w-full px-4 py-2 pr-10 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-600"
               placeholder="••••••••"
             />
-            {error &&
-            (formData.email === null ||
-              formData.email === undefined ||
-              formData.email === "") ? (
+            <div
+              className="absolute right-3 top-[38px] cursor-pointer text-gray-500"
+              onClick={() => setShowPassword((prev) => !prev)}
+            >
+              {showPassword ? <FaEyeSlash size={18} /> : <FaEye size={18} />}
+            </div>
+
+            {error && (!formData.email || formData.email === "") ? (
               <span className="text-red-700">{GlobalErrorMessage}</span>
-            ) : (
-              ""
-            )}
+            ) : null}
           </div>
 
           {/* Role */}
@@ -129,7 +146,12 @@ const LoginPage = () => {
             >
               Role
             </label>
-            <select
+            <Select
+              value={roleType.find((item) => item.value === formData.role)}
+              options={roleType}
+              onChange={handleRoleChange}
+            />
+            {/* <select
               name="role"
               id="role"
               value={formData.role}
@@ -139,7 +161,7 @@ const LoginPage = () => {
               <option value="freelancer">Freelancer</option>
               <option value="client">Client</option>
               <option value="admin">Admin</option>
-            </select>
+            </select> */}
           </div>
 
           {/* Submit */}

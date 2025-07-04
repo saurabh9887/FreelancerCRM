@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { FiPlus } from "react-icons/fi";
 import Pagination from "../Components/Pagination";
 import AddUpdateClient from "../Components/AddUpdateClient";
+import { getAllClientsAPI } from "../ServiceAPI/ClientsAPI/ClientsAPI";
 
 const clients = [
   { name: "John Doe", email: "john@example.com", company: "Acme Corp" },
@@ -35,11 +36,34 @@ const clients = [
 
 const ClientsList = () => {
   const [search, setSearch] = useState("");
+  const [clientList, setClientList] = useState([]);
   const [openClientModal, setOpenClientModal] = useState();
   const [modelRequestData, setModelRequestData] = useState({
     Action: null,
     clientKeyID: null,
   });
+
+  useEffect(() => {
+    GetAllClientsList();
+  }, []);
+
+  const GetAllClientsList = async () => {
+    try {
+      const res = await getAllClientsAPI({
+        pageNo: 1,
+        pageSize: 5,
+        searchKeyword: null,
+        fromDate: null,
+        toDate: null,
+      });
+
+      if (res) {
+        setClientList(res.data.data);
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
   const filteredClients = clients.filter((client) =>
     client.name.toLowerCase().includes(search.toLowerCase())
@@ -74,7 +98,7 @@ const ClientsList = () => {
 
       {/* Table */}
       <div className="overflow-x-auto border border-slate-200">
-        <table className="min-w-[800px] w-full text-sm text-left text-slate-700">
+        <table className="min-w-[800px] max-h-[650px] w-full text-sm text-left text-slate-700">
           <thead className="bg-slate-100 text-slate-900 font-semibold">
             <tr>
               <th
@@ -83,19 +107,34 @@ const ClientsList = () => {
               >
                 #
               </th>
-              {Array.from({ length: 12 }).map((_, index) => (
-                <th
-                  key={index}
-                  className="px-4 py-3 whitespace-nowrap"
-                  style={{ border: "1px solid lightgray" }}
-                >
-                  Table heading
-                </th>
-              ))}
+              <th
+                className="px-4 py-3 whitespace-nowrap"
+                style={{ border: "1px solid lightgray" }}
+              >
+                Name
+              </th>
+              <th
+                className="px-4 py-3 whitespace-nowrap"
+                style={{ border: "1px solid lightgray" }}
+              >
+                Email
+              </th>
+              <th
+                className="px-4 py-3 whitespace-nowrap"
+                style={{ border: "1px solid lightgray" }}
+              >
+                Company
+              </th>
+              <th
+                className="px-4 py-3 whitespace-nowrap"
+                style={{ border: "1px solid lightgray" }}
+              >
+                Phone Number
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {clients.map((row, i) => (
+            {clientList.map((client, i) => (
               <tr key={i} className="hover:bg-slate-50 transition">
                 <td
                   className="px-4 py-3"
@@ -103,15 +142,30 @@ const ClientsList = () => {
                 >
                   {i + 1}
                 </td>
-                {Array.from({ length: 12 }).map((_, index) => (
-                  <td
-                    key={index}
-                    className="px-4 py-3 whitespace-nowrap"
-                    style={{ border: "1px solid lightgray" }}
-                  >
-                    Table cell {index}
-                  </td>
-                ))}
+                <td
+                  className="px-4 py-3 whitespace-nowrap"
+                  style={{ border: "1px solid lightgray" }}
+                >
+                  {client.clientName}
+                </td>
+                <td
+                  className="px-4 py-3 whitespace-nowrap"
+                  style={{ border: "1px solid lightgray" }}
+                >
+                  {client.clientEmail}
+                </td>
+                <td
+                  className="px-4 py-3 whitespace-nowrap"
+                  style={{ border: "1px solid lightgray" }}
+                >
+                  {client.clientCompany}
+                </td>
+                <td
+                  className="px-4 py-3 whitespace-nowrap"
+                  style={{ border: "1px solid lightgray" }}
+                >
+                  {client.clientMobileNo}
+                </td>
               </tr>
             ))}
           </tbody>
