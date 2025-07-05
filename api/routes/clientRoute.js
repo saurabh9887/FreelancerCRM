@@ -1,9 +1,13 @@
 import express from "express";
-import { getAllClients } from "../Controllers/clientController.js";
+import {
+  AddUpdateClient,
+  getAllClients,
+} from "../Controllers/clientController.js";
 
 const router = express.Router();
 
 // get client list
 router.post("/getAllClients", getAllClients);
+router.post("/AddUpdateClient", AddUpdateClient);
 
 export default router;

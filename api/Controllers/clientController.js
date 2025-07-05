@@ -69,3 +69,75 @@ export const getAllClients = (req, res) => {
     });
   });
 };
+
+export const AddUpdateClient = (req, res) => {
+  const {
+    clientKeyID,
+    clientName,
+    clientEmail,
+    clientMobileNo,
+    clientCompany,
+  } = req.body;
+
+  // ✅ CASE 1: Add new client (if clientKeyID is not sent or null)
+  if (!clientKeyID) {
+    const insertQuery = `
+      INSERT INTO clients (clientName, clientEmail, clientMobileNo, clientCompany)
+      VALUES (?, ?, ?, ?)
+    `;
+
+    db.query(
+      insertQuery,
+      [clientName, clientEmail, clientMobileNo, clientCompany],
+      (err, result) => {
+        if (err) return res.status(500).json(err);
+
+        // Assuming your clients table has an auto-incremented column called `clientID`
+        const fetchUUIDQuery = `SELECT clientKeyID FROM clients WHERE clientID = ?`;
+
+        db.query(fetchUUIDQuery, [result.insertId], (err, data) => {
+          if (err) return res.status(500).json(err);
+
+          return res.status(201).json({
+            message: "Client created successfully",
+            clientKeyID: data[0].clientKeyID,
+          });
+        });
+      }
+    );
+  }
+
+  // ✅ CASE 2: Update existing client using clientKeyID
+  else {
+    const updateQuery = `
+      UPDATE clients
+      SET clientName = ?, clientEmail = ?, clientMobileNo = ?, clientCompany = ?
+      WHERE clientKeyID = ?
+    `;
+
+    db.query(
+      updateQuery,
+      [clientName, clientEmail, clientMobileNo, clientCompany, clientKeyID],
+      (err, result) => {
+        if (err) return res.status(500).json(err);
+
+        // Check if update actually happened
+        if (result.affectedRows === 0) {
+          return res
+            .status(404)
+            .json({ message: "Client not found for update" });
+        }
+
+        return res.status(200).json({
+          message: "Client updated successfully",
+          clientKeyID: clientKeyID,
+        });
+      }
+    );
+  }
+};
+
+// ALTER TABLE client
+// MODIFY COLUMN clientKeyID VARCHAR(36) NOT NULL DEFAULT (UUID());
+
+// This is the db command I have used in the database to convert a id into keyid

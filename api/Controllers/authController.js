@@ -24,3 +24,8 @@ export const login = (req, res) => {
     res.status(200).json(responseData);
   });
 };
+
+// ALTER TABLE client
+// MODIFY COLUMN clientKeyID VARCHAR(36) NOT NULL DEFAULT (UUID());
+
+// This is the db command I have used in the database to convert a id into keyid
