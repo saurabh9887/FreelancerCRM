@@ -137,6 +137,48 @@ export const AddUpdateClient = (req, res) => {
   }
 };
 
+export const getSingleClientByID = (req, res) => {
+  const { clientKeyID } = req.query;
+  if (clientKeyID === null || clientKeyID === undefined || clientKeyID === "") {
+    return res.status(500).json("clientKeyID is missing");
+  }
+
+  const q = `SELECT * FROM clients WHERE clientKeyID=?`;
+  db.query(q, [clientKeyID], (err, data) => {
+    if (err) return res.status(500).json(err);
+
+    if (data.length === 0)
+      return res
+        .status(404)
+        .json("No client present against mentioned clientKeyID");
+
+    res.status(200).json(data);
+  });
+};
+
+export const deleteClientByID = (req, res) => {
+  const { clientKeyID } = req.query;
+
+  if (!clientKeyID) {
+    return res.status(400).json("clientKeyID is missing");
+  }
+
+  const q = "DELETE FROM clients WHERE clientKeyID = ?";
+  db.query(q, [clientKeyID], (err, result) => {
+    if (err) {
+      return res.status(500).json(err);
+    }
+
+    if (result.affectedRows === 0) {
+      return res
+        .status(404)
+        .json("No client found with the provided clientKeyID");
+    }
+
+    res.status(200).json("Client deleted successfully");
+  });
+};
+
 // ALTER TABLE client
 // MODIFY COLUMN clientKeyID VARCHAR(36) NOT NULL DEFAULT (UUID());
 

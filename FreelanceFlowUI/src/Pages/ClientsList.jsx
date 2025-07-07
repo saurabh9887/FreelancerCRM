@@ -1,51 +1,33 @@
 import React, { useEffect, useState } from "react";
-import { FiPlus } from "react-icons/fi";
+import { FiEdit, FiPlus, FiTrash } from "react-icons/fi";
 import Pagination from "../Components/Pagination";
 import AddUpdateClient from "../Components/AddUpdateClient";
-import { getAllClientsAPI } from "../ServiceAPI/ClientsAPI/ClientsAPI";
-
-const clients = [
-  { name: "John Doe", email: "john@example.com", company: "Acme Corp" },
-  { name: "Jane Smith", email: "jane@example.com", company: "Globex Inc" },
-  { name: "Jane Smith", email: "jane@example.com", company: "Globex Inc" },
-  { name: "Jane Smith", email: "jane@example.com", company: "Globex Inc" },
-  { name: "Jane Smith", email: "jane@example.com", company: "Globex Inc" },
-  { name: "Jane Smith", email: "jane@example.com", company: "Globex Inc" },
-  { name: "Jane Smith", email: "jane@example.com", company: "Globex Inc" },
-  { name: "Bob Johnson", email: "bob@example.com", company: "Soylent Ltd" },
-  { name: "Bob Johnson", email: "bob@example.com", company: "Soylent Ltd" },
-  { name: "Bob Johnson", email: "bob@example.com", company: "Soylent Ltd" },
-  { name: "Bob Johnson", email: "bob@example.com", company: "Soylent Ltd" },
-  { name: "Bob Johnson", email: "bob@example.com", company: "Soylent Ltd" },
-  { name: "Bob Johnson", email: "bob@example.com", company: "Soylent Ltd" },
-  { name: "Bob Johnson", email: "bob@example.com", company: "Soylent Ltd" },
-  { name: "Bob Johnson", email: "bob@example.com", company: "Soylent Ltd" },
-  { name: "Bob Johnson", email: "bob@example.com", company: "Soylent Ltd" },
-  { name: "Bob Johnson", email: "bob@example.com", company: "Soylent Ltd" },
-  { name: "Bob Johnson", email: "bob@example.com", company: "Soylent Ltd" },
-  { name: "Bob Johnson", email: "bob@example.com", company: "Soylent Ltd" },
-  { name: "Bob Johnson", email: "bob@example.com", company: "Soylent Ltd" },
-  { name: "Bob Johnson", email: "bob@example.com", company: "Soylent Ltd" },
-  { name: "Bob Johnson", email: "bob@example.com", company: "Soylent Ltd" },
-  { name: "Bob Johnson", email: "bob@example.com", company: "Soylent Ltd" },
-  { name: "Bob Johnson", email: "bob@example.com", company: "Soylent Ltd" },
-  { name: "Bob Johnson", email: "bob@example.com", company: "Soylent Ltd" },
-  { name: "Bob Johnson", email: "bob@example.com", company: "Soylent Ltd" },
-  // Add more mock clients here
-];
+import {
+  deleteClientByID,
+  getAllClientsAPI,
+} from "../ServiceAPI/ClientsAPI/ClientsAPI";
+import SuccessPopup from "../Components/SuccessPopup";
 
 const ClientsList = () => {
   const [search, setSearch] = useState("");
   const [clientList, setClientList] = useState([]);
   const [openClientModal, setOpenClientModal] = useState();
+  const [showSuccessPopUp, setShowSuccessPopUp] = useState(false);
+  const [isAddUpdateActionDone, setIsAddUpdateActionDone] = useState(true);
+  const [successMessage, setSuccessMessage] = useState("");
   const [modelRequestData, setModelRequestData] = useState({
     Action: null,
     clientKeyID: null,
   });
 
+  console.log(showSuccessPopUp);
+
   useEffect(() => {
-    GetAllClientsList();
-  }, []);
+    if (isAddUpdateActionDone) {
+      GetAllClientsList();
+    }
+    setIsAddUpdateActionDone(false);
+  }, [isAddUpdateActionDone]);
 
   const GetAllClientsList = async () => {
     try {
@@ -65,12 +47,40 @@ const ClientsList = () => {
     }
   };
 
-  const filteredClients = clients.filter((client) =>
-    client.name.toLowerCase().includes(search.toLowerCase())
-  );
+  // const filteredClients = clients.filter((client) =>
+  //   client.name.toLowerCase().includes(search.toLowerCase())
+  // );
 
   const handleAddClient = () => {
     setOpenClientModal(true);
+    setModelRequestData((prev) => ({
+      ...prev,
+      Action: null,
+      clientKeyID: null,
+    }));
+  };
+
+  const handleUpdateClient = (value) => {
+    setOpenClientModal(true);
+    setModelRequestData((prev) => ({
+      ...prev,
+      Action: "Update",
+      clientKeyID: value.clientKeyID,
+    }));
+  };
+
+  const handleDeleteClient = async (value) => {
+    // debugger;
+    if (!value.clientKeyID) return;
+
+    try {
+      const res = await deleteClientByID(value.clientKeyID);
+      setSuccessMessage("Client Deleted Successfully!");
+      setShowSuccessPopUp(true);
+      setIsAddUpdateActionDone(true);
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   return (
@@ -88,7 +98,7 @@ const ClientsList = () => {
           className="px-4 py-2 rounded-lg border border-slate-300 w-full sm:w-1/3 focus:outline-none focus:ring-2 focus:ring-indigo-600"
         />
         <button
-          className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition"
+          className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition cursor-pointer"
           onClick={handleAddClient}
         >
           <FiPlus />
@@ -131,6 +141,12 @@ const ClientsList = () => {
               >
                 Phone Number
               </th>
+              <th
+                className="px-4 py-3 whitespace-nowrap"
+                style={{ border: "1px solid lightgray" }}
+              >
+                Actions
+              </th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -166,6 +182,23 @@ const ClientsList = () => {
                 >
                   {client.clientMobileNo}
                 </td>
+                <td
+                  className="px-4 py-3 whitespace-nowrap flex gap-2"
+                  style={{ border: "1px solid lightgray" }}
+                >
+                  <button
+                    className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition cursor-pointer"
+                    onClick={() => handleUpdateClient(client)}
+                  >
+                    <FiEdit />
+                  </button>
+                  <button
+                    className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition cursor-pointer"
+                    onClick={() => handleDeleteClient(client)}
+                  >
+                    <FiTrash />
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -178,6 +211,16 @@ const ClientsList = () => {
         show={openClientModal}
         onClose={() => setOpenClientModal(false)}
         modelRequestData={modelRequestData}
+        setIsAddUpdateActionDone={setIsAddUpdateActionDone}
+        setOpenClientModal={setOpenClientModal}
+        setSuccessMessage={setSuccessMessage}
+        setShowSuccessPopUp={setShowSuccessPopUp}
+      />
+
+      <SuccessPopup
+        show={showSuccessPopUp}
+        onClose={() => setShowSuccessPopUp(false)}
+        message={successMessage}
       />
     </div>
   );
