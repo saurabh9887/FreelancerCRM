@@ -1,10 +1,25 @@
 import React from "react";
 
 const Pagination = ({
-  currentPage = 12,
-  totalPages = 20,
-  onPageChange = () => {},
+  currentPage,
+  totalItems,
+  itemsPerPage,
+  onPageChange,
 }) => {
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+
+  const handleNext = () => {
+    if (currentPage < totalPages) {
+      onPageChange(currentPage + 1);
+    }
+  };
+
+  const handlePrev = () => {
+    if (currentPage > 1) {
+      onPageChange(currentPage - 1);
+    }
+  };
+
   return (
     <div className="flex justify-end items-center gap-2 mt-4 flex-wrap text-sm">
       {/* First */}
@@ -22,7 +37,7 @@ const Pagination = ({
 
       {/* Prev */}
       <button
-        onClick={() => onPageChange(currentPage - 1)}
+        onClick={handlePrev}
         className={`px-3 py-1 rounded ${
           currentPage === 1
             ? "bg-slate-200 text-slate-400 cursor-not-allowed"
@@ -33,43 +48,38 @@ const Pagination = ({
         Prev
       </button>
 
-      {/* First visible page */}
-      <button className="px-3 py-1 rounded bg-white border border-slate-300 hover:bg-slate-100">
-        1
-      </button>
+      {/* Pages */}
+      {[...Array(totalPages)].map((_, index) => {
+        const page = index + 1;
 
-      {/* Ellipsis */}
-      <span className="px-2">...</span>
+        if (
+          page === 1 ||
+          page === totalPages ||
+          (page >= currentPage - 1 && page <= currentPage + 1)
+        ) {
+          return (
+            <button
+              key={page}
+              onClick={() => onPageChange(page)}
+              className={`px-3 py-1 rounded border ${
+                page === currentPage
+                  ? "bg-indigo-600 text-white"
+                  : "bg-white border-slate-300 hover:bg-slate-100"
+              }`}
+            >
+              {page}
+            </button>
+          );
+        } else if (page === currentPage - 2 || page === currentPage + 2) {
+          return <span key={page}>...</span>;
+        }
 
-      {/* Middle pages */}
-      {[10, 11, 12, 13, 14].map((page) => (
-        <button
-          key={page}
-          onClick={() => onPageChange(page)}
-          disabled={page === 14}
-          className={`px-3 py-1 rounded border ${
-            page === currentPage
-              ? "bg-indigo-600 text-white"
-              : page === 14
-              ? "bg-slate-200 text-slate-400 cursor-not-allowed"
-              : "bg-white border-slate-300 hover:bg-slate-100"
-          }`}
-        >
-          {page}
-        </button>
-      ))}
-
-      {/* Ellipsis */}
-      <span className="px-2">...</span>
-
-      {/* Last page */}
-      <button className="px-3 py-1 rounded bg-white border border-slate-300 hover:bg-slate-100">
-        20
-      </button>
+        return null;
+      })}
 
       {/* Next */}
       <button
-        onClick={() => onPageChange(currentPage + 1)}
+        onClick={handleNext}
         className={`px-3 py-1 rounded ${
           currentPage === totalPages
             ? "bg-slate-200 text-slate-400 cursor-not-allowed"

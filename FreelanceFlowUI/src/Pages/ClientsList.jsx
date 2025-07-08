@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useSyncExternalStore } from "react";
 import { FiEdit, FiPlus, FiTrash } from "react-icons/fi";
 import Pagination from "../Components/Pagination";
 import AddUpdateClient from "../Components/AddUpdateClient";
@@ -14,6 +14,12 @@ const ClientsList = () => {
   const [openClientModal, setOpenClientModal] = useState();
   const [showSuccessPopUp, setShowSuccessPopUp] = useState(false);
   const [isAddUpdateActionDone, setIsAddUpdateActionDone] = useState(true);
+  const [pageSize, setPageSize] = useState(15);
+  const [pageNo, setPageNo] = useState(0);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(null);
+  const [totalRecords, setTotalRecords] = useState(null);
+  const [totalPages, setTotalPages] = useState(null);
   const [successMessage, setSuccessMessage] = useState("");
   const [modelRequestData, setModelRequestData] = useState({
     Action: null,
@@ -24,23 +30,26 @@ const ClientsList = () => {
 
   useEffect(() => {
     if (isAddUpdateActionDone) {
-      GetAllClientsList();
+      GetAllClientsList(pageNo, null, null, null);
     }
     setIsAddUpdateActionDone(false);
   }, [isAddUpdateActionDone]);
 
-  const GetAllClientsList = async () => {
+  const GetAllClientsList = async (pageNo, searchKeyword, fromDate, toDate) => {
     try {
       const res = await getAllClientsAPI({
-        pageNo: 1,
-        pageSize: 5,
-        searchKeyword: null,
-        fromDate: null,
-        toDate: null,
+        pageNo: pageNo ? pageNo : 1,
+        pageSize: pageSize,
+        searchKeyword: searchKeyword ? searchKeyword : null,
+        fromDate: fromDate ? fromDate : null,
+        toDate: toDate ? toDate : null,
       });
 
       if (res) {
         setClientList(res.data.data);
+        const pages = res.data.data.length;
+        setTotalPages(pages / pageSize);
+        setTotalRecords(res.data.data.length);
       }
     } catch (error) {
       console.log(error);
@@ -83,6 +92,10 @@ const ClientsList = () => {
     }
   };
 
+  const onPageChange = (value) => {
+    setCurrentPage(value);
+  };
+
   return (
     <div
       className="p-6 bg-[#F1F5F9] overflow-y-hidden flex flex-col"
@@ -108,7 +121,7 @@ const ClientsList = () => {
 
       {/* Table */}
       <div className="overflow-x-auto border border-slate-200">
-        <table className="min-w-[800px] max-h-[650px] w-full text-sm text-left text-slate-700">
+        <table className="min-w-[800px] max-h-[750px] w-full text-sm text-left text-slate-700">
           <thead className="bg-slate-100 text-slate-900 font-semibold">
             <tr>
               <th
@@ -205,7 +218,12 @@ const ClientsList = () => {
         </table>
       </div>
 
-      <Pagination />
+      <Pagination
+        currentPage={currentPage}
+        totalItems={totalRecords}
+        itemsPerPage={pageSize}
+        onPageChange={onPageChange}
+      />
 
       <AddUpdateClient
         show={openClientModal}
