@@ -14,9 +14,9 @@ const ClientsList = () => {
   const [openClientModal, setOpenClientModal] = useState();
   const [showSuccessPopUp, setShowSuccessPopUp] = useState(false);
   const [isAddUpdateActionDone, setIsAddUpdateActionDone] = useState(true);
-  const [pageSize, setPageSize] = useState(15);
+  const [pageSize, setPageSize] = useState(10);
   const [pageNo, setPageNo] = useState(0);
-  const [currentPage, setCurrentPage] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(null);
   const [totalRecords, setTotalRecords] = useState(null);
   const [totalPages, setTotalPages] = useState(null);
@@ -30,7 +30,7 @@ const ClientsList = () => {
 
   useEffect(() => {
     if (isAddUpdateActionDone) {
-      GetAllClientsList(pageNo, null, null, null);
+      GetAllClientsList(currentPage, null, null, null);
     }
     setIsAddUpdateActionDone(false);
   }, [isAddUpdateActionDone]);
@@ -49,7 +49,7 @@ const ClientsList = () => {
         setClientList(res.data.data);
         const pages = res.data.data.length;
         setTotalPages(pages / pageSize);
-        setTotalRecords(res.data.data.length);
+        setTotalRecords(res.data.total);
       }
     } catch (error) {
       console.log(error);
@@ -94,6 +94,13 @@ const ClientsList = () => {
 
   const onPageChange = (value) => {
     setCurrentPage(value);
+    GetAllClientsList(value, null, null, null);
+  };
+
+  const handleSearch = (e) => {
+    const input = e.target.value;
+    setSearch(input);
+    GetAllClientsList(1, input, null, null);
   };
 
   return (
@@ -107,7 +114,7 @@ const ClientsList = () => {
           type="text"
           placeholder="Search clients..."
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={(e) => handleSearch(e)}
           className="px-4 py-2 rounded-lg border border-slate-300 w-full sm:w-1/3 focus:outline-none focus:ring-2 focus:ring-indigo-600"
         />
         <button
@@ -169,7 +176,7 @@ const ClientsList = () => {
                   className="px-4 py-3"
                   style={{ border: "1px solid lightgray" }}
                 >
-                  {i + 1}
+                  {(currentPage - 1) * pageSize + i + 1}
                 </td>
                 <td
                   className="px-4 py-3 whitespace-nowrap"

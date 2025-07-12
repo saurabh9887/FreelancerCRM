@@ -7,6 +7,7 @@ const Pagination = ({
   onPageChange,
 }) => {
   const totalPages = Math.ceil(totalItems / itemsPerPage);
+  console.log(totalItems, itemsPerPage, totalPages);
 
   const handleNext = () => {
     if (currentPage < totalPages) {
