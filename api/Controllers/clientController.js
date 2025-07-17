@@ -1,7 +1,7 @@
 import { db } from "../db.js";
 
 export const getAllClients = (req, res) => {
-  let { pageNo, pageSize, searchKeyword, fromDate, toDate } = req.body;
+  let { pageNo, pageSize, searchKeyword, fromDate, toDate, userID } = req.body;
 
   // ✅ Convert to numbers
   pageNo = Number(pageNo);
@@ -27,6 +27,18 @@ export const getAllClients = (req, res) => {
   let countQuery = `SELECT COUNT(*) AS total FROM clients WHERE 1=1`;
   const queryParams = [];
   const countParams = [];
+
+  if (!userID || userID.trim() === "") {
+    return res.status(400).json("User does not exists");
+  }
+
+  // ✅ Filter by userID (foreign key)
+  if (userID && userID.trim() !== "") {
+    baseQuery += ` AND userID = ?`;
+    countQuery += ` AND userID = ?`;
+    queryParams.push(userID);
+    countParams.push(userID);
+  }
 
   // ✅ Apply search filter (clientName or clientEmail)
   if (searchKeyword && searchKeyword.trim() !== "") {
