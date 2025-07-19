@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import Select from "react-select";
 import { roleType } from "../middleware/Utils";
+import { useEffect } from "react";
 
 const LoginPage = () => {
   const [error, setError] = useState(null);

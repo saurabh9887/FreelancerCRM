@@ -8,6 +8,7 @@ const Logout = () => {
 
   useEffect(() => {
     setCurrentUser(null);
+    localStorage.clear();
     navigate("/login");
   }, [navigate]);
 

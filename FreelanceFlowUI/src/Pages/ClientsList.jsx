@@ -7,6 +7,8 @@ import {
   getAllClientsAPI,
 } from "../ServiceAPI/ClientsAPI/ClientsAPI";
 import SuccessPopup from "../Components/SuccessPopup";
+import { useContext } from "react";
+import { AuthContext } from "../context/authContext";
 
 const ClientsList = () => {
   const [search, setSearch] = useState("");
@@ -25,6 +27,7 @@ const ClientsList = () => {
     Action: null,
     clientKeyID: null,
   });
+  const { currentUser } = useContext(AuthContext);
 
   console.log(showSuccessPopUp);
 
@@ -36,6 +39,7 @@ const ClientsList = () => {
   }, [isAddUpdateActionDone]);
 
   const GetAllClientsList = async (pageNo, searchKeyword, fromDate, toDate) => {
+    debugger;
     try {
       const res = await getAllClientsAPI({
         pageNo: pageNo ? pageNo : 1,
@@ -43,6 +47,7 @@ const ClientsList = () => {
         searchKeyword: searchKeyword ? searchKeyword : null,
         fromDate: fromDate ? fromDate : null,
         toDate: toDate ? toDate : null,
+        userID: String(currentUser.userID),
       });
 
       if (res) {

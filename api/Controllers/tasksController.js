@@ -1,7 +1,8 @@
 import { db } from "../db.js";
 
-export const getAllClients = (req, res) => {
-  let { pageNo, pageSize, searchKeyword, fromDate, toDate, userID } = req.body;
+export const getAllTasks = (req, res) => {
+  let { pageNo, pageSize, searchKeyword, fromDate, toDate, userID, clientID } =
+    req.body;
 
   // ✅ Convert to numbers
   pageNo = Number(pageNo);
@@ -23,8 +24,8 @@ export const getAllClients = (req, res) => {
   const offset = (pageNo - 1) * pageSize;
   const limit = pageSize;
 
-  let baseQuery = `SELECT * FROM clients WHERE 1=1`;
-  let countQuery = `SELECT COUNT(*) AS total FROM clients WHERE 1=1`;
+  let baseQuery = `SELECT * FROM tasks WHERE 1=1`;
+  let countQuery = `SELECT COUNT(*) AS total FROM tasks WHERE 1=1`;
   const queryParams = [];
   const countParams = [];
 
@@ -41,10 +42,17 @@ export const getAllClients = (req, res) => {
     countParams.push(userID);
   }
 
+  if (clientID && clientID.trim() !== "") {
+    baseQuery += ` AND clientID = ?`;
+    countQuery += ` AND clientID = ?`;
+    queryParams.push(clientID);
+    countParams.push(clientID);
+  }
+
   // ✅ Apply search filter (clientName or clientEmail)
   if (searchKeyword && searchKeyword.trim() !== "") {
-    baseQuery += ` AND (clientName LIKE ? OR clientEmail LIKE ?)`;
-    countQuery += ` AND (clientName LIKE ? OR clientEmail LIKE ?)`;
+    baseQuery += ` AND (taskTitle LIKE ?)`;
+    countQuery += ` AND (taskTitle LIKE ?)`;
     const keywordPattern = `%${searchKeyword}%`;
     queryParams.push(keywordPattern, keywordPattern);
     countParams.push(keywordPattern, keywordPattern);
@@ -83,37 +91,32 @@ export const getAllClients = (req, res) => {
   });
 };
 
-export const AddUpdateClient = (req, res) => {
-  const {
-    clientKeyID,
-    clientName,
-    clientEmail,
-    clientMobileNo,
-    clientCompany,
-  } = req.body;
+export const AddUpdateTask = (req, res) => {
+  const { taskKeyID, title, description, status, dueDate, userID, clientID } =
+    req.body;
 
   // ✅ CASE 1: Add new client (if clientKeyID is not sent or null)
-  if (!clientKeyID) {
+  if (!taskKeyID) {
     const insertQuery = `
-      INSERT INTO clients (clientName, clientEmail, clientMobileNo, clientCompany)
-      VALUES (?, ?, ?, ?)
+      INSERT INTO tasks (title, description, status, dueDate,userID, clientID)
+      VALUES (?, ?, ?, ?,?,?)
     `;
 
     db.query(
       insertQuery,
-      [clientName, clientEmail, clientMobileNo, clientCompany],
+      [title, description, status, dueDate, userID, clientID],
       (err, result) => {
         if (err) return res.status(500).json(err);
 
         // Assuming your clients table has an auto-incremented column called `clientID`
-        const fetchUUIDQuery = `SELECT clientKeyID FROM clients WHERE clientID = ?`;
+        const fetchUUIDQuery = `SELECT taskKeyID FROM tasks WHERE taskID = ?`;
 
         db.query(fetchUUIDQuery, [result.insertId], (err, data) => {
           if (err) return res.status(500).json(err);
 
           return res.status(201).json({
-            message: "Client created successfully",
-            clientKeyID: data[0].clientKeyID,
+            message: "Task added successfully",
+            taskKeyID: data[0].taskKeyID,
           });
         });
       }
@@ -123,76 +126,27 @@ export const AddUpdateClient = (req, res) => {
   // ✅ CASE 2: Update existing client using clientKeyID
   else {
     const updateQuery = `
-      UPDATE clients
-      SET clientName = ?, clientEmail = ?, clientMobileNo = ?, clientCompany = ?
-      WHERE clientKeyID = ?
+      UPDATE tasks
+      SET title = ?, description = ?, status = ?, dueDate = ?
+      WHERE taskKeyID = ?
     `;
 
     db.query(
       updateQuery,
-      [clientName, clientEmail, clientMobileNo, clientCompany, clientKeyID],
+      [title, description, status, dueDate, taskKeyID],
       (err, result) => {
         if (err) return res.status(500).json(err);
 
         // Check if update actually happened
         if (result.affectedRows === 0) {
-          return res
-            .status(404)
-            .json({ message: "Client not found for update" });
+          return res.status(404).json({ message: "Task not found for update" });
         }
 
         return res.status(200).json({
-          message: "Client updated successfully",
-          clientKeyID: clientKeyID,
+          message: "Task updated successfully",
+          taskKeyID: taskKeyID,
         });
       }
     );
   }
 };
-
-export const getSingleClientByID = (req, res) => {
-  const { clientKeyID } = req.query;
-  if (clientKeyID === null || clientKeyID === undefined || clientKeyID === "") {
-    return res.status(500).json("clientKeyID is missing");
-  }
-
-  const q = `SELECT * FROM clients WHERE clientKeyID=?`;
-  db.query(q, [clientKeyID], (err, data) => {
-    if (err) return res.status(500).json(err);
-
-    if (data.length === 0)
-      return res
-        .status(404)
-        .json("No client present against mentioned clientKeyID");
-
-    res.status(200).json(data);
-  });
-};
-
-export const deleteClientByID = (req, res) => {
-  const { clientKeyID } = req.query;
-
-  if (!clientKeyID) {
-    return res.status(400).json("clientKeyID is missing");
-  }
-
-  const q = "DELETE FROM clients WHERE clientKeyID = ?";
-  db.query(q, [clientKeyID], (err, result) => {
-    if (err) {
-      return res.status(500).json(err);
-    }
-
-    if (result.affectedRows === 0) {
-      return res
-        .status(404)
-        .json("No client found with the provided clientKeyID");
-    }
-
-    res.status(200).json("Client deleted successfully");
-  });
-};
-
-// ALTER TABLE client
-// MODIFY COLUMN clientKeyID VARCHAR(36) NOT NULL DEFAULT (UUID());
-
-// This is the db command I have used in the database to convert a id into keyid
