@@ -1,11 +1,11 @@
 import express from "express";
-import { AddUpdateTask } from "../Controllers/tasksController.js";
+import { AddUpdateTask, getAllTasks, getSingleTaskByID } from "../Controllers/tasksController.js";
 
 const router = express.Router();
 
 // get client list
-// router.post("/getAllClients", getAllTasks);
-// router.get("/getSingleClientByID", getSingleClientByID);
+router.post("/getAllTasks", getAllTasks);
+router.get("/getSingleTaskByID", getSingleTaskByID);
 router.post("/AddUpdateTask", AddUpdateTask);
 // router.delete("/deleteClientByID", deleteClientByID);
 

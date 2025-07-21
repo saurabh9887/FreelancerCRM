@@ -1,4 +1,9 @@
-import React, { useEffect, useState, useSyncExternalStore } from "react";
+import React, {
+  useContext,
+  useEffect,
+  useState,
+  useSyncExternalStore,
+} from "react";
 import { FiEdit, FiPlus, FiTrash } from "react-icons/fi";
 import Pagination from "../Components/Pagination";
 import AddUpdateClient from "../Components/AddUpdateClient";
@@ -8,11 +13,14 @@ import {
 } from "../ServiceAPI/ClientsAPI/ClientsAPI";
 import SuccessPopup from "../Components/SuccessPopup";
 import AddUpdateTasks from "../Components/AddUpdateTasks";
+import { getAllTasksAPI } from "../ServiceAPI/TasksAPI/TasksAPI";
+import { TaskStatus } from "../middleware/Utils";
+import { AuthContext } from "../context/authContext";
 
 const TasksList = () => {
   const [search, setSearch] = useState("");
-  const [clientList, setClientList] = useState([]);
-  const [openClientModal, setOpenClientModal] = useState();
+  const [taskList, setTaskList] = useState([]);
+  const [openTaskModal, setOpenTaskModal] = useState();
   const [showSuccessPopUp, setShowSuccessPopUp] = useState(false);
   const [isAddUpdateActionDone, setIsAddUpdateActionDone] = useState(true);
   const [pageSize, setPageSize] = useState(10);
@@ -24,30 +32,33 @@ const TasksList = () => {
   const [successMessage, setSuccessMessage] = useState("");
   const [modelRequestData, setModelRequestData] = useState({
     Action: null,
-    clientKeyID: null,
+    taskKeyID: null,
   });
+
+  const { currentUser } = useContext(AuthContext);
 
   console.log(showSuccessPopUp);
 
   useEffect(() => {
     if (isAddUpdateActionDone) {
-      GetAllClientsList(currentPage, null, null, null);
+      GetAllTasksList(currentPage, null, null, null);
     }
     setIsAddUpdateActionDone(false);
   }, [isAddUpdateActionDone]);
 
-  const GetAllClientsList = async (pageNo, searchKeyword, fromDate, toDate) => {
+  const GetAllTasksList = async (pageNo, searchKeyword, fromDate, toDate) => {
     try {
-      const res = await getAllClientsAPI({
+      const res = await getAllTasksAPI({
         pageNo: pageNo ? pageNo : 1,
         pageSize: pageSize,
         searchKeyword: searchKeyword ? searchKeyword : null,
         fromDate: fromDate ? fromDate : null,
         toDate: toDate ? toDate : null,
+        userID: String(currentUser.userID),
       });
 
       if (res) {
-        setClientList(res.data.data);
+        setTaskList(res.data.data);
         const pages = res.data.data.length;
         setTotalPages(pages / pageSize);
         setTotalRecords(res.data.total);
@@ -61,48 +72,48 @@ const TasksList = () => {
   //   client.name.toLowerCase().includes(search.toLowerCase())
   // );
 
-  const handleAddClient = () => {
-    setOpenClientModal(true);
+  const handleAddTask = () => {
+    setOpenTaskModal(true);
     setModelRequestData((prev) => ({
       ...prev,
       Action: null,
-      clientKeyID: null,
+      taskKeyID: null,
     }));
   };
 
-  const handleUpdateClient = (value) => {
-    setOpenClientModal(true);
+  const handleUpdateTask = (value) => {
+    setOpenTaskModal(true);
     setModelRequestData((prev) => ({
       ...prev,
       Action: "Update",
-      clientKeyID: value.clientKeyID,
+      taskKeyID: value.taskKeyID,
     }));
-  };
-
-  const handleDeleteClient = async (value) => {
-    // debugger;
-    if (!value.clientKeyID) return;
-
-    try {
-      const res = await deleteClientByID(value.clientKeyID);
-      setSuccessMessage("Client Deleted Successfully!");
-      setShowSuccessPopUp(true);
-      setIsAddUpdateActionDone(true);
-    } catch (error) {
-      console.log(error);
-    }
   };
 
   const onPageChange = (value) => {
     setCurrentPage(value);
-    GetAllClientsList(value, null, null, null);
+    GetAllTasksList(value, null, null, null);
   };
 
   const handleSearch = (e) => {
     const input = e.target.value;
     setSearch(input);
-    GetAllClientsList(1, input, null, null);
+    GetAllTasksList(1, input, null, null);
   };
+
+  function extractDateOnly(isoString) {
+    if (!isoString) return "";
+    try {
+      const date = new Date(isoString);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`; // or use "/" instead of "-"
+    } catch (error) {
+      console.error("Invalid date string:", isoString);
+      return "";
+    }
+  }
 
   return (
     <div
@@ -120,7 +131,7 @@ const TasksList = () => {
         />
         <button
           className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition cursor-pointer"
-          onClick={handleAddClient}
+          onClick={handleAddTask}
         >
           <FiPlus />
           Add Task
@@ -171,7 +182,7 @@ const TasksList = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {clientList.map((client, i) => (
+            {taskList.map((task, i) => (
               <tr key={i} className="hover:bg-slate-50 transition">
                 <td
                   className="px-4 py-3"
@@ -183,25 +194,29 @@ const TasksList = () => {
                   className="px-4 py-3 whitespace-nowrap"
                   style={{ border: "1px solid lightgray" }}
                 >
-                  {client.clientName}
+                  {task.title}
                 </td>
                 <td
                   className="px-4 py-3 whitespace-nowrap"
                   style={{ border: "1px solid lightgray" }}
                 >
-                  {client.clientEmail}
+                  {task.description
+                    ? task.description.length > 20
+                      ? task.description.slice(0, 20) + "...."
+                      : task.description
+                    : ""}
                 </td>
                 <td
                   className="px-4 py-3 whitespace-nowrap"
                   style={{ border: "1px solid lightgray" }}
                 >
-                  {client.clientCompany}
+                  {extractDateOnly(task.dueDate)}
                 </td>
                 <td
                   className="px-4 py-3 whitespace-nowrap"
                   style={{ border: "1px solid lightgray" }}
                 >
-                  {client.clientMobileNo}
+                  {TaskStatus.find((id) => id.value === task.status).label}
                 </td>
                 <td
                   className="px-4 py-3 whitespace-nowrap flex gap-2"
@@ -209,15 +224,9 @@ const TasksList = () => {
                 >
                   <button
                     className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition cursor-pointer"
-                    onClick={() => handleUpdateClient(client)}
+                    onClick={() => handleUpdateTask(task)}
                   >
                     <FiEdit />
-                  </button>
-                  <button
-                    className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition cursor-pointer"
-                    onClick={() => handleDeleteClient(client)}
-                  >
-                    <FiTrash />
                   </button>
                 </td>
               </tr>
@@ -234,11 +243,11 @@ const TasksList = () => {
       />
 
       <AddUpdateTasks
-        show={openClientModal}
-        onClose={() => setOpenClientModal(false)}
+        show={openTaskModal}
+        onClose={() => setOpenTaskModal(false)}
         modelRequestData={modelRequestData}
         setIsAddUpdateActionDone={setIsAddUpdateActionDone}
-        setOpenClientModal={setOpenClientModal}
+        setOpenTaskModal={setOpenTaskModal}
         setSuccessMessage={setSuccessMessage}
         setShowSuccessPopUp={setShowSuccessPopUp}
       />

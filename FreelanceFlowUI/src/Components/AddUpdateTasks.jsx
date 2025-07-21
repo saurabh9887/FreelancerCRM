@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import {
   AddUpdateClientAPI,
   getSingleClientByID,
@@ -7,20 +7,27 @@ import { GlobalErrorMessage } from "./helper";
 import SuccessPopup from "./SuccessPopup";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import {
+  AddUpdateTasksAPI,
+  getSingleTasksByID,
+} from "../ServiceAPI/TasksAPI/TasksAPI";
+import { TaskStatus } from "../middleware/Utils";
+import Select from "react-select";
+import { AuthContext } from "../context/authContext";
 
 const AddUpdateTasks = ({
   show,
   onClose,
   modelRequestData,
   setSuccessMessage,
-  setOpenClientModal,
+  setOpenTaskModal,
   setIsAddUpdateActionDone,
   setShowSuccessPopUp,
 }) => {
   if (!show) return null;
 
   const [error, setError] = useState(false);
-  const [startDate, setStartDate] = useState(null);
+  const { currentUser } = useContext(AuthContext);
   // const [taskData, setTaskData] = useState({
   //   taskKeyID: null,
   //   title: null,
@@ -29,12 +36,12 @@ const AddUpdateTasks = ({
   //   description: null,
   // });
 
-  const [clientData, setClientData] = useState({
-    clientKeyID: null,
-    clientName: null,
-    clientEmail: null,
-    clientMobileNo: null,
-    clientCompany: null,
+  const [taskData, setTaskData] = useState({
+    taskKeyID: null,
+    title: null,
+    description: null,
+    status: null,
+    dueDate: null,
   });
 
   // const setInitial = () => {
@@ -49,26 +56,45 @@ const AddUpdateTasks = ({
 
   useEffect(() => {
     if (
-      modelRequestData.clientKeyID !== "" &&
-      modelRequestData.clientKeyID !== null &&
-      modelRequestData.clientKeyID !== undefined
+      modelRequestData.taskKeyID !== "" &&
+      modelRequestData.taskKeyID !== null &&
+      modelRequestData.taskKeyID !== undefined
     ) {
-      GetClientModal(modelRequestData.clientKeyID);
+      GetTaskModal(modelRequestData.taskKeyID);
     }
   }, []);
 
-  const GetClientModal = async (clientKeyID) => {
-    // debugger;
+  function formatDateToYMD(dateInput) {
+    // If it's a Date object
+    if (dateInput instanceof Date && !isNaN(dateInput)) {
+      const year = dateInput.getFullYear();
+      const month = String(dateInput.getMonth() + 1).padStart(2, "0");
+      const day = String(dateInput.getDate()).padStart(2, "0");
+      return `${year}/${month}/${day}`;
+    }
+
+    // If it's an ISO string like 2025-07-03T18:30:00.000Z
+    if (typeof dateInput === "string" && dateInput.includes("T")) {
+      const date = new Date(dateInput);
+      if (!isNaN(date)) {
+        return formatDateToYMD(date); // Recursive call to handle Date object logic
+      }
+    }
+
+    return "";
+  }
+
+  const GetTaskModal = async (taskKeyID) => {
     try {
-      const res = await getSingleClientByID(clientKeyID);
+      const res = await getSingleTasksByID(taskKeyID);
       if (res.status === 200) {
         const ModelData = res.data[0];
-        setClientData((prev) => ({
+        setTaskData((prev) => ({
           ...prev,
-          clientName: ModelData.clientName,
-          clientEmail: ModelData.clientEmail,
-          clientCompany: ModelData.clientCompany,
-          clientMobileNo: ModelData.clientMobileNo,
+          title: ModelData.title,
+          description: ModelData.description,
+          status: ModelData.status,
+          dueDate: ModelData.dueDate,
         }));
       }
     } catch (error) {
@@ -76,58 +102,52 @@ const AddUpdateTasks = ({
     }
   };
 
-  const handleAddUpdateClient = () => {
-    // debugger;
+  const handleAddUpdateTask = () => {
     let isValid = false;
     if (
-      clientData.clientName === null ||
-      clientData.clientName === undefined ||
-      clientData.clientName === "" ||
-      clientData.clientEmail === null ||
-      clientData.clientEmail === undefined ||
-      clientData.clientEmail === "" ||
-      clientData.clientCompany === null ||
-      clientData.clientCompany === undefined ||
-      clientData.clientCompany === "" ||
-      clientData.clientMobileNo === null ||
-      clientData.clientMobileNo === undefined ||
-      clientData.clientMobileNo === ""
-    ) {
-      isValid = true;
-      setError(true);
-    } else if (
-      clientData.clientEmail &&
-      !isValidEmail(clientData.clientEmail)
+      taskData.title === null ||
+      taskData.title === undefined ||
+      taskData.title === "" ||
+      taskData.description === null ||
+      taskData.description === undefined ||
+      taskData.description === "" ||
+      taskData.dueDate === null ||
+      taskData.dueDate === undefined ||
+      taskData.dueDate === "" ||
+      taskData.status === null ||
+      taskData.status === undefined ||
+      taskData.status === ""
     ) {
       isValid = true;
       setError(true);
     }
 
     const api_params = {
-      clientKeyID: modelRequestData.clientKeyID,
-      clientName: clientData.clientName,
-      clientEmail: clientData.clientEmail,
-      clientMobileNo: clientData.clientMobileNo,
-      clientCompany: clientData.clientCompany,
+      taskKeyID: modelRequestData.taskKeyID,
+      title: taskData.title,
+      description: taskData.description,
+      status: taskData.status,
+      dueDate: formatDateToYMD(taskData.dueDate),
+      userID: String(currentUser.userID),
+      clientID: "5",
     };
 
     if (!isValid) {
-      AddUpdateClientData(api_params);
+      AddUpdateTaskData(api_params);
     }
   };
 
-  const AddUpdateClientData = async (params) => {
-    // debugger;
+  const AddUpdateTaskData = async (params) => {
     try {
-      const res = await AddUpdateClientAPI(params);
+      const res = await AddUpdateTasksAPI(params);
       if (res) {
         setSuccessMessage(
-          modelRequestData.clientKeyID !== null
-            ? "Client Updated Successfully!"
-            : "Client Added Successfully!"
+          modelRequestData.taskKeyID !== null
+            ? "Task Updated Successfully!"
+            : "Task Added Successfully!"
         );
         setShowSuccessPopUp(true);
-        setOpenClientModal(false);
+        setOpenTaskModal(false);
         setIsAddUpdateActionDone(true);
       }
     } catch (error) {
@@ -138,6 +158,13 @@ const AddUpdateTasks = ({
   const isValidEmail = (email) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
+  };
+
+  const handleSelectStatus = (value) => {
+    setTaskData((prev) => ({
+      ...prev,
+      status: value.value,
+    }));
   };
 
   return (
@@ -174,8 +201,8 @@ const AddUpdateTasks = ({
               </label>
               <input
                 type="text"
-                value={clientData?.clientName}
-                placeholder="Client Name"
+                value={taskData?.title}
+                placeholder="Task Title"
                 id="name"
                 name="name"
                 required
@@ -192,16 +219,16 @@ const AddUpdateTasks = ({
                   input = input.replace(/\d/g, "");
 
                   // Use the cleaned input as needed (e.g., update state)
-                  setClientData((prev) => ({
+                  setTaskData((prev) => ({
                     ...prev,
-                    clientName: input,
+                    title: input,
                   }));
                 }}
               />
               {error &&
-              (clientData.clientName !== null ||
-                clientData.clientName !== undefined ||
-                clientData.clientName !== "") ? (
+              (taskData.title !== null ||
+                taskData.title !== undefined ||
+                taskData.title !== "") ? (
                 <span className="text-red-500">{GlobalErrorMessage}</span>
               ) : (
                 ""
@@ -217,16 +244,21 @@ const AddUpdateTasks = ({
                 Due Date <span className="text-red-500">*</span>
               </label>
               <DatePicker
-                selected={startDate}
-                onChange={(date) => setStartDate(date)}
+                selected={taskData.dueDate}
+                onChange={(date) => {
+                  setTaskData((prev) => ({
+                    ...prev,
+                    dueDate: date,
+                  }));
+                }}
                 dateFormat="dd/MM/yyyy"
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                 // className="border rounded px-3 py-2"
               />
               {error &&
-              (clientData.clientCompany !== null ||
-                clientData.clientCompany !== undefined ||
-                clientData.clientCompany !== "") ? (
+              (taskData.dueDate !== null ||
+                taskData.dueDate !== undefined ||
+                taskData.dueDate !== "") ? (
                 <span className="text-red-500">{GlobalErrorMessage}</span>
               ) : (
                 ""
@@ -236,50 +268,22 @@ const AddUpdateTasks = ({
             {/* Status */}
             <div>
               <label
-                htmlFor="phone"
+                htmlFor="status"
                 className="block text-sm font-medium text-gray-700"
               >
                 Status <span className="text-red-500">*</span>
               </label>
-              <input
-                type="text"
-                value={clientData?.clientMobileNo}
-                id="phone"
-                name="phone"
-                maxLength={10}
-                placeholder="Enter Phone Number"
-                pattern="[0-9]*"
-                inputMode="numeric"
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                onChange={(e) => {
-                  let input = e.target.value;
-
-                  // Remove spaces
-                  input = input.trim();
-
-                  // Allow only digits
-                  input = input.replace(/\D/g, "");
-
-                  // Disallow leading zeros
-                  if (input.startsWith("0")) {
-                    input = input.replace(/^0+/, "");
-                  }
-
-                  // Limit to 10 digits
-                  if (input.length > 10) {
-                    input = input.slice(0, 10);
-                  }
-
-                  setClientData((prev) => ({
-                    ...prev,
-                    clientMobileNo: input,
-                  }));
-                }}
+              <Select
+                value={TaskStatus.find(
+                  (item) => item.value === taskData.status
+                )}
+                options={TaskStatus}
+                onChange={handleSelectStatus}
               />
               {error &&
-              (clientData.clientMobileNo !== null ||
-                clientData.clientMobileNo !== undefined ||
-                clientData.clientMobileNo !== "") ? (
+              (taskData.status !== null ||
+                taskData.status !== undefined ||
+                taskData.status !== "") ? (
                 <span className="text-red-500">{GlobalErrorMessage}</span>
               ) : (
                 ""
@@ -289,18 +293,19 @@ const AddUpdateTasks = ({
             {/* Description */}
             <div>
               <label
-                htmlFor="email"
+                htmlFor="description"
                 className="block text-sm font-medium text-gray-700"
               >
                 Description <span className="text-red-500">*</span>
               </label>
               <textarea
-                type="email"
-                value={clientData?.clientEmail}
-                id="email"
-                name="email"
-                placeholder="Enter Email"
+                type="text"
+                value={taskData?.description}
+                id="description"
+                name="description"
+                placeholder="Enter Description"
                 required
+                maxLength={250}
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                 onChange={(e) => {
                   let input = e.target.value;
@@ -310,26 +315,18 @@ const AddUpdateTasks = ({
                     input = input.trimStart();
                   }
 
-                  // Remove all digits
-                  input = input.replace(/\d/g, "");
-
                   // Use the cleaned input as needed (e.g., update state)
-                  setClientData((prev) => ({
+                  setTaskData((prev) => ({
                     ...prev,
-                    clientEmail: input,
+                    description: input,
                   }));
                 }}
               />
               {error &&
-              (clientData.clientEmail !== null ||
-                clientData.clientEmail !== undefined ||
-                clientData.clientEmail !== "") ? (
+              (taskData.description !== null ||
+                taskData.description !== undefined ||
+                taskData.description !== "") ? (
                 <span className="text-red-500">{GlobalErrorMessage}</span>
-              ) : clientData.clientEmail &&
-                !isValidEmail(clientData.clientEmail) ? (
-                <span className="text-red-500">
-                  Please enter a valid email address
-                </span>
               ) : (
                 ""
               )}
@@ -346,7 +343,7 @@ const AddUpdateTasks = ({
             Close
           </button>
           <button
-            onClick={handleAddUpdateClient}
+            onClick={handleAddUpdateTask}
             className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition cursor-pointer"
           >
             {modelRequestData.Action === null ? "Add" : "Update"}

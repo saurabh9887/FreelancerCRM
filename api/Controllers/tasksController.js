@@ -1,8 +1,7 @@
 import { db } from "../db.js";
 
 export const getAllTasks = (req, res) => {
-  let { pageNo, pageSize, searchKeyword, fromDate, toDate, userID, clientID } =
-    req.body;
+  let { pageNo, pageSize, searchKeyword, fromDate, toDate, userID } = req.body;
 
   // ✅ Convert to numbers
   pageNo = Number(pageNo);
@@ -42,17 +41,10 @@ export const getAllTasks = (req, res) => {
     countParams.push(userID);
   }
 
-  if (clientID && clientID.trim() !== "") {
-    baseQuery += ` AND clientID = ?`;
-    countQuery += ` AND clientID = ?`;
-    queryParams.push(clientID);
-    countParams.push(clientID);
-  }
-
   // ✅ Apply search filter (clientName or clientEmail)
   if (searchKeyword && searchKeyword.trim() !== "") {
-    baseQuery += ` AND (taskTitle LIKE ?)`;
-    countQuery += ` AND (taskTitle LIKE ?)`;
+    baseQuery += ` AND (title LIKE ?)`;
+    countQuery += ` AND (title LIKE ?)`;
     const keywordPattern = `%${searchKeyword}%`;
     queryParams.push(keywordPattern, keywordPattern);
     countParams.push(keywordPattern, keywordPattern);
@@ -149,4 +141,23 @@ export const AddUpdateTask = (req, res) => {
       }
     );
   }
+};
+
+export const getSingleTaskByID = (req, res) => {
+  const { taskKeyID } = req.query;
+  if (taskKeyID === null || taskKeyID === undefined || taskKeyID === "") {
+    return res.status(500).json("taskKeyID is missing");
+  }
+
+  const q = `SELECT * FROM tasks WHERE taskKeyID=?`;
+  db.query(q, [taskKeyID], (err, data) => {
+    if (err) return res.status(500).json(err);
+
+    if (data.length === 0)
+      return res
+        .status(404)
+        .json("No task present against mentioned taskKeyID");
+
+    res.status(200).json(data);
+  });
 };
