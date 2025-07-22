@@ -39,7 +39,6 @@ const ClientsList = () => {
   }, [isAddUpdateActionDone]);
 
   const GetAllClientsList = async (pageNo, searchKeyword, fromDate, toDate) => {
-    debugger;
     try {
       const res = await getAllClientsAPI({
         pageNo: pageNo ? pageNo : 1,
@@ -140,7 +139,7 @@ const ClientsList = () => {
                 className="px-4 py-3 whitespace-nowrap"
                 style={{ border: "1px solid lightgray" }}
               >
-                #
+                Sr No
               </th>
               <th
                 className="px-4 py-3 whitespace-nowrap"

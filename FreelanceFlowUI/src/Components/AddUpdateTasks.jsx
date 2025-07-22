@@ -1,6 +1,7 @@
 import React, { useContext, useEffect, useState } from "react";
 import {
   AddUpdateClientAPI,
+  getClientLookupList,
   getSingleClientByID,
 } from "../ServiceAPI/ClientsAPI/ClientsAPI";
 import { GlobalErrorMessage } from "./helper";
@@ -27,6 +28,7 @@ const AddUpdateTasks = ({
   if (!show) return null;
 
   const [error, setError] = useState(false);
+  const [clientLookupData, setClientLookupData] = useState([]);
   const { currentUser } = useContext(AuthContext);
   // const [taskData, setTaskData] = useState({
   //   taskKeyID: null,
@@ -42,6 +44,7 @@ const AddUpdateTasks = ({
     description: null,
     status: null,
     dueDate: null,
+    clientID: null,
   });
 
   // const setInitial = () => {
@@ -62,6 +65,10 @@ const AddUpdateTasks = ({
     ) {
       GetTaskModal(modelRequestData.taskKeyID);
     }
+  }, []);
+
+  useEffect(() => {
+    GetClientLookupList(currentUser.userID);
   }, []);
 
   function formatDateToYMD(dateInput) {
@@ -96,6 +103,19 @@ const AddUpdateTasks = ({
           status: ModelData.status,
           dueDate: ModelData.dueDate,
         }));
+      }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const GetClientLookupList = async (userID) => {
+    debugger;
+    try {
+      const res = await getClientLookupList(userID);
+      if (res.status === 200) {
+        const ModelData = res.data.data;
+        setClientLookupData(ModelData);
       }
     } catch (error) {
       console.log(error);
@@ -161,9 +181,18 @@ const AddUpdateTasks = ({
   };
 
   const handleSelectStatus = (value) => {
+    setError(false);
     setTaskData((prev) => ({
       ...prev,
       status: value.value,
+    }));
+  };
+
+  const handleClientChange = (value) => {
+    setError(false);
+    setTaskData((prev) => ({
+      ...prev,
+      clientID: value.value,
     }));
   };
 
@@ -191,6 +220,32 @@ const AddUpdateTasks = ({
         {/* Body */}
         <div className="text-gray-700 space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Status */}
+            <div>
+              <label
+                htmlFor="status"
+                className="block text-sm font-medium text-gray-700"
+              >
+                Select Client <span className="text-red-500">*</span>
+              </label>
+              <Select
+                value={clientLookupData.find(
+                  (item) => item.value === taskData.clientID
+                )}
+                options={clientLookupData}
+                placeholder="Select client"
+                onChange={handleClientChange}
+              />
+              {error &&
+              (taskData.status === null ||
+                taskData.status === undefined ||
+                taskData.status === "") ? (
+                <span className="text-red-500">{GlobalErrorMessage}</span>
+              ) : (
+                ""
+              )}
+            </div>
+
             {/* Task */}
             <div>
               <label
@@ -208,6 +263,7 @@ const AddUpdateTasks = ({
                 required
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                 onChange={(e) => {
+                  setError(false);
                   let input = e.target.value;
 
                   // Remove leading spaces
@@ -226,9 +282,9 @@ const AddUpdateTasks = ({
                 }}
               />
               {error &&
-              (taskData.title !== null ||
-                taskData.title !== undefined ||
-                taskData.title !== "") ? (
+              (taskData.title === null ||
+                taskData.title === undefined ||
+                taskData.title === "") ? (
                 <span className="text-red-500">{GlobalErrorMessage}</span>
               ) : (
                 ""
@@ -246,19 +302,21 @@ const AddUpdateTasks = ({
               <DatePicker
                 selected={taskData.dueDate}
                 onChange={(date) => {
+                  setError(false);
                   setTaskData((prev) => ({
                     ...prev,
                     dueDate: date,
                   }));
                 }}
                 dateFormat="dd/MM/yyyy"
+                style={{ width: "100%" }}
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                 // className="border rounded px-3 py-2"
               />
               {error &&
-              (taskData.dueDate !== null ||
-                taskData.dueDate !== undefined ||
-                taskData.dueDate !== "") ? (
+              (taskData.dueDate === null ||
+                taskData.dueDate === undefined ||
+                taskData.dueDate === "") ? (
                 <span className="text-red-500">{GlobalErrorMessage}</span>
               ) : (
                 ""
@@ -281,9 +339,9 @@ const AddUpdateTasks = ({
                 onChange={handleSelectStatus}
               />
               {error &&
-              (taskData.status !== null ||
-                taskData.status !== undefined ||
-                taskData.status !== "") ? (
+              (taskData.status === null ||
+                taskData.status === undefined ||
+                taskData.status === "") ? (
                 <span className="text-red-500">{GlobalErrorMessage}</span>
               ) : (
                 ""
@@ -291,7 +349,7 @@ const AddUpdateTasks = ({
             </div>
 
             {/* Description */}
-            <div>
+            <div className="col-span-2">
               <label
                 htmlFor="description"
                 className="block text-sm font-medium text-gray-700"
@@ -308,6 +366,7 @@ const AddUpdateTasks = ({
                 maxLength={250}
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                 onChange={(e) => {
+                  setError(false);
                   let input = e.target.value;
 
                   // Remove leading spaces
@@ -323,9 +382,9 @@ const AddUpdateTasks = ({
                 }}
               />
               {error &&
-              (taskData.description !== null ||
-                taskData.description !== undefined ||
-                taskData.description !== "") ? (
+              (taskData.description === null ||
+                taskData.description === undefined ||
+                taskData.description === "") ? (
                 <span className="text-red-500">{GlobalErrorMessage}</span>
               ) : (
                 ""

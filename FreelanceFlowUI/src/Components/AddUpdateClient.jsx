@@ -1,10 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import {
   AddUpdateClientAPI,
   getSingleClientByID,
 } from "../ServiceAPI/ClientsAPI/ClientsAPI";
 import { GlobalErrorMessage } from "./helper";
 import SuccessPopup from "./SuccessPopup";
+import { AuthContext } from "../context/authContext";
 
 const AddUpdateClient = ({
   show,
@@ -18,6 +19,8 @@ const AddUpdateClient = ({
   if (!show) return null;
 
   const [error, setError] = useState(false);
+  const [errorMessage, setErrorMessage] = useState(false);
+  const { currentUser } = useContext(AuthContext);
   const [clientData, setClientData] = useState({
     clientKeyID: null,
     clientName: null,
@@ -66,7 +69,7 @@ const AddUpdateClient = ({
   };
 
   const handleAddUpdateClient = () => {
-    // debugger;
+    debugger;
     let isValid = false;
     if (
       clientData.clientName === null ||
@@ -98,6 +101,7 @@ const AddUpdateClient = ({
       clientEmail: clientData.clientEmail,
       clientMobileNo: clientData.clientMobileNo,
       clientCompany: clientData.clientCompany,
+      userID: String(currentUser.userID),
     };
 
     if (!isValid) {
@@ -120,6 +124,7 @@ const AddUpdateClient = ({
         setIsAddUpdateActionDone(true);
       }
     } catch (error) {
+      setErrorMessage(error.response.data.message);
       console.log(error);
     }
   };
@@ -170,6 +175,8 @@ const AddUpdateClient = ({
                 required
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                 onChange={(e) => {
+                  setError(false);
+                  setErrorMessage("");
                   let input = e.target.value;
 
                   // Remove leading spaces
@@ -188,9 +195,9 @@ const AddUpdateClient = ({
                 }}
               />
               {error &&
-              (clientData.clientName !== null ||
-                clientData.clientName !== undefined ||
-                clientData.clientName !== "") ? (
+              (clientData.clientName === null ||
+                clientData.clientName === undefined ||
+                clientData.clientName === "") ? (
                 <span className="text-red-500">{GlobalErrorMessage}</span>
               ) : (
                 ""
@@ -214,6 +221,7 @@ const AddUpdateClient = ({
                 required
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                 onChange={(e) => {
+                  setError(false);
                   let input = e.target.value;
 
                   // Remove leading spaces
@@ -232,9 +240,9 @@ const AddUpdateClient = ({
                 }}
               />
               {error &&
-              (clientData.clientEmail !== null ||
-                clientData.clientEmail !== undefined ||
-                clientData.clientEmail !== "") ? (
+              (clientData.clientEmail === null ||
+                clientData.clientEmail === undefined ||
+                clientData.clientEmail === "") ? (
                 <span className="text-red-500">{GlobalErrorMessage}</span>
               ) : clientData.clientEmail &&
                 !isValidEmail(clientData.clientEmail) ? (
@@ -263,6 +271,7 @@ const AddUpdateClient = ({
                 name="company"
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                 onChange={(e) => {
+                  setError(false);
                   let input = e.target.value;
 
                   // Remove leading spaces
@@ -278,9 +287,9 @@ const AddUpdateClient = ({
                 }}
               />
               {error &&
-              (clientData.clientCompany !== null ||
-                clientData.clientCompany !== undefined ||
-                clientData.clientCompany !== "") ? (
+              (clientData.clientCompany === null ||
+                clientData.clientCompany === undefined ||
+                clientData.clientCompany === "") ? (
                 <span className="text-red-500">{GlobalErrorMessage}</span>
               ) : (
                 ""
@@ -306,6 +315,7 @@ const AddUpdateClient = ({
                 inputMode="numeric"
                 className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                 onChange={(e) => {
+                  setError(false);
                   let input = e.target.value;
 
                   // Remove spaces
@@ -331,15 +341,21 @@ const AddUpdateClient = ({
                 }}
               />
               {error &&
-              (clientData.clientMobileNo !== null ||
-                clientData.clientMobileNo !== undefined ||
-                clientData.clientMobileNo !== "") ? (
+              (clientData.clientMobileNo === null ||
+                clientData.clientMobileNo === undefined ||
+                clientData.clientMobileNo === "") ? (
                 <span className="text-red-500">{GlobalErrorMessage}</span>
               ) : (
                 ""
               )}
             </div>
           </div>
+
+          {errorMessage && (
+            <span className="text-red-500 flex items-center justify-center">
+              {errorMessage}
+            </span>
+          )}
         </div>
 
         {/* Footer */}

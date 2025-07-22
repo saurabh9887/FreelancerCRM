@@ -147,7 +147,7 @@ const TasksList = () => {
                 className="px-4 py-3 whitespace-nowrap"
                 style={{ border: "1px solid lightgray" }}
               >
-                #
+                Sr No
               </th>
               <th
                 className="px-4 py-3 whitespace-nowrap"

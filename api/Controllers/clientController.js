@@ -90,18 +90,19 @@ export const AddUpdateClient = (req, res) => {
     clientEmail,
     clientMobileNo,
     clientCompany,
+    userID,
   } = req.body;
 
   // ✅ CASE 1: Add new client (if clientKeyID is not sent or null)
   if (!clientKeyID) {
     const insertQuery = `
-      INSERT INTO clients (clientName, clientEmail, clientMobileNo, clientCompany)
-      VALUES (?, ?, ?, ?)
+      INSERT INTO clients (clientName, clientEmail, clientMobileNo, clientCompany, userID)
+      VALUES (?, ?, ?, ?, ?)
     `;
 
     db.query(
       insertQuery,
-      [clientName, clientEmail, clientMobileNo, clientCompany],
+      [clientName, clientEmail, clientMobileNo, clientCompany, userID],
       (err, result) => {
         if (err) return res.status(500).json(err);
 
@@ -150,6 +151,111 @@ export const AddUpdateClient = (req, res) => {
   }
 };
 
+// export const AddUpdateClient = (req, res) => {
+//   const {
+//     clientKeyID,
+//     clientName,
+//     clientEmail,
+//     clientMobileNo,
+//     clientCompany,
+//     userID
+//   } = req.body;
+
+//   // ✅ Common check: clientName must not be empty
+//   if (!clientName || clientName.trim() === "") {
+//     return res.status(400).json({ message: "Client name is required." });
+//   }
+
+//   // ✅ CASE 1: Add new client
+//   if (!clientKeyID) {
+//     // 🔍 Check if a client with same name already exists
+//     const checkDuplicateQuery = `SELECT clientID FROM clients WHERE clientName = ?`;
+
+//     db.query(checkDuplicateQuery, [clientName], (dupErr, dupResult) => {
+//       if (dupErr) return res.status(500).json(dupErr);
+
+//       if (dupResult.length > 0) {
+//         return res
+//           .status(409)
+//           .json({ message: "The client with same name already exists." });
+//       }
+
+//       // ✅ Safe to insert
+//       const insertQuery = `
+//         INSERT INTO clients (clientName, clientEmail, clientMobileNo, clientCompany, userID)
+//         VALUES (?, ?, ?, ?, ?)
+//       `;
+
+//       db.query(
+//         insertQuery,
+//         [clientName, clientEmail, clientMobileNo, clientCompany, userID],
+//         (err, result) => {
+//           if (err) return res.status(500).json(err);
+
+//           const fetchUUIDQuery = `SELECT clientKeyID FROM clients WHERE clientID = ?`;
+//           db.query(fetchUUIDQuery, [result.insertId], (err, data) => {
+//             if (err) return res.status(500).json(err);
+
+//             return res.status(201).json({
+//               message: "Client created successfully",
+//               clientKeyID: data[0].clientKeyID,
+//             });
+//           });
+//         }
+//       );
+//     });
+//   }
+
+//   // ✅ CASE 2: Update existing client
+//   else {
+//     // 🔍 Check if another client (not this one) has the same name
+//     const checkDuplicateQuery = `
+//       SELECT clientID FROM clients
+//       WHERE clientName = ? AND clientKeyID != ?
+//     `;
+
+//     db.query(
+//       checkDuplicateQuery,
+//       [clientName, clientKeyID],
+//       (dupErr, dupResult) => {
+//         if (dupErr) return res.status(500).json(dupErr);
+
+//         if (dupResult.length > 0) {
+//           return res
+//             .status(409)
+//             .json({ message: "The client with same name already exists." });
+//         }
+
+//         // ✅ Safe to update
+//         const updateQuery = `
+//         UPDATE clients
+//         SET clientName = ?, clientEmail = ?, clientMobileNo = ?, clientCompany = ?, userID = ?
+//         WHERE clientKeyID = ?
+//       `;
+
+//         db.query(
+//           updateQuery,
+//           [clientName, clientEmail, clientMobileNo, clientCompany, clientKeyID, userID],
+//           (err, result) => {
+//             if (err) return res.status(500).json(err);
+
+//             if (result.affectedRows === 0) {
+//               return res
+//                 .status(404)
+//                 .json({ message: "Client not found for update" });
+//             }
+
+//             return res.status(200).json({
+//               message: "Client updated successfully",
+//               clientKeyID: clientKeyID,
+//             });
+//           }
+//         );
+//       }
+//     );
+//   }
+// };
+
 export const getSingleClientByID = (req, res) => {
   const { clientKeyID } = req.query;
   if (clientKeyID === null || clientKeyID === undefined || clientKeyID === "") {
@@ -166,6 +272,44 @@ export const getSingleClientByID = (req, res) => {
         .json("No client present against mentioned clientKeyID");
 
     res.status(200).json(data);
+  });
+};
+
+export const getClientLookupList = (req, res) => {
+  const { userID } = req.query;
+
+  // ✅ Validate userID
+  if (!userID || userID.trim() === "") {
+    return res.status(400).json({ error: "userID is required." });
+  }
+
+  // ✅ Step 1: Check if user exists
+  const checkUserQuery = `SELECT 1 FROM users WHERE userID = ? LIMIT 1`;
+  db.query(checkUserQuery, [userID], (userErr, userResult) => {
+    if (userErr) return res.status(500).json(userErr);
+
+    if (userResult.length === 0) {
+      return res
+        .status(404)
+        .json({ error: "User with given userID not found." });
+    }
+
+    // ✅ Step 2: Fetch clients for that user
+    const lookupQuery = `
+      SELECT clientID AS value, clientName AS label 
+      FROM clients 
+      WHERE userID = ?
+      ORDER BY clientName ASC
+    `;
+
+    db.query(lookupQuery, [userID], (err, results) => {
+      if (err) return res.status(500).json(err);
+
+      res.status(200).json({
+        success: true,
+        data: results,
+      });
+    });
   });
 };
 

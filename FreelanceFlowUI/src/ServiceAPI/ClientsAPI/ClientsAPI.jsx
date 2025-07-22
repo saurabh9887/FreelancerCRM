@@ -22,6 +22,13 @@ export const getSingleClientByID = async (clientKeyID) => {
   return res;
 };
 
+export const getClientLookupList = async (userID) => {
+  const url = `${Base_Url}/client/getClientLookupList?userID=${userID}`;
+  const res = await axios.get(url);
+
+  return res;
+};
+
 export const deleteClientByID = async (clientKeyID) => {
   const url = `${Base_Url}/client/deleteClientByID?clientKeyID=${clientKeyID}`;
   const res = await axios.delete(url);
