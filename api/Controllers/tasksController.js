@@ -3,11 +3,11 @@ import { db } from "../db.js";
 export const getAllTasks = (req, res) => {
   let { pageNo, pageSize, searchKeyword, fromDate, toDate, userID } = req.body;
 
-  // ✅ Convert to numbers
+  // Convert to numbers
   pageNo = Number(pageNo);
   pageSize = Number(pageSize);
 
-  // ✅ Validate pagination values
+  // Validate pagination
   if (!Number.isInteger(pageNo) || pageNo < 1) {
     return res
       .status(400)
@@ -23,34 +23,42 @@ export const getAllTasks = (req, res) => {
   const offset = (pageNo - 1) * pageSize;
   const limit = pageSize;
 
+  const cleanUserID = userID?.trim();
+  if (!cleanUserID) {
+    return res.status(400).json({ error: "User does not exist." });
+  }
+
   let baseQuery = `SELECT * FROM tasks WHERE 1=1`;
   let countQuery = `SELECT COUNT(*) AS total FROM tasks WHERE 1=1`;
   const queryParams = [];
   const countParams = [];
 
-  if (!userID || userID.trim() === "") {
-    return res.status(400).json("User does not exists");
-  }
+  // Filter by userID
+  baseQuery += ` AND userID = ?`;
+  countQuery += ` AND userID = ?`;
+  queryParams.push(cleanUserID);
+  countParams.push(cleanUserID);
 
-  // ✅ Filter by userID (foreign key)
-
-  if (userID && userID.trim() !== "") {
-    baseQuery += ` AND userID = ?`;
-    countQuery += ` AND userID = ?`;
-    queryParams.push(userID);
-    countParams.push(userID);
+  // Apply search filter
+  const trimmedKeyword = searchKeyword?.trim();
+  if (trimmedKeyword) {
+    baseQuery += ` AND (title LIKE ?)`;
+    countQuery += ` AND (title LIKE ?)`;
+    const keywordPattern = `%${trimmedKeyword}%`;
+    queryParams.push(keywordPattern);
+    countParams.push(keywordPattern);
   }
 
   // ✅ Apply search filter (clientName or clientEmail)
-  if (searchKeyword && searchKeyword.trim() !== "") {
-    baseQuery += ` AND (title LIKE ?)`;
-    countQuery += ` AND (title LIKE ?)`;
-    const keywordPattern = `%${searchKeyword}%`;
-    queryParams.push(keywordPattern, keywordPattern);
-    countParams.push(keywordPattern, keywordPattern);
-  }
+  // if (searchKeyword && searchKeyword.trim() !== "") {
+  //   baseQuery += ` AND (clientName LIKE ? OR clientEmail LIKE ?)`;
+  //   countQuery += ` AND (clientName LIKE ? OR clientEmail LIKE ?)`;
+  //   const keywordPattern = `%${searchKeyword}%`;
+  //   queryParams.push(keywordPattern, keywordPattern);
+  //   countParams.push(keywordPattern, keywordPattern);
+  // }
 
-  // ✅ Apply date range filter (if both provided)
+  // Date range filter
   if (fromDate && toDate) {
     baseQuery += ` AND DATE(created_at) BETWEEN ? AND ?`;
     countQuery += ` AND DATE(created_at) BETWEEN ? AND ?`;
@@ -58,20 +66,19 @@ export const getAllTasks = (req, res) => {
     countParams.push(fromDate, toDate);
   }
 
-  // ✅ Add sorting & pagination
+  // Sorting and pagination
   baseQuery += ` ORDER BY created_at DESC LIMIT ? OFFSET ?`;
   queryParams.push(limit, offset);
 
-  // ✅ Execute data query
+  // Execute main query
   db.query(baseQuery, queryParams, (err, data) => {
     if (err) return res.status(500).json(err);
 
-    // ✅ Execute count query
+    // Execute count query
     db.query(countQuery, countParams, (countErr, countResult) => {
       if (countErr) return res.status(500).json(countErr);
 
       const total = countResult[0]?.total || 0;
-
       res.status(200).json({
         success: true,
         data,

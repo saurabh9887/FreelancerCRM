@@ -69,7 +69,6 @@ const AddUpdateClient = ({
   };
 
   const handleAddUpdateClient = () => {
-    debugger;
     let isValid = false;
     if (
       clientData.clientName === null ||

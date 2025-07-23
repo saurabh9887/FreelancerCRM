@@ -102,6 +102,7 @@ const AddUpdateTasks = ({
           description: ModelData.description,
           status: ModelData.status,
           dueDate: ModelData.dueDate,
+          clientID: ModelData.clientID,
         }));
       }
     } catch (error) {
@@ -110,7 +111,6 @@ const AddUpdateTasks = ({
   };
 
   const GetClientLookupList = async (userID) => {
-    debugger;
     try {
       const res = await getClientLookupList(userID);
       if (res.status === 200) {
@@ -149,7 +149,7 @@ const AddUpdateTasks = ({
       status: taskData.status,
       dueDate: formatDateToYMD(taskData.dueDate),
       userID: String(currentUser.userID),
-      clientID: "5",
+      clientID: taskData.clientID,
     };
 
     if (!isValid) {
