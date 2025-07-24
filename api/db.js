@@ -24,11 +24,3 @@ export const db = mysql.createPool({
 //   database: "railway",
 //   port: 34051,
 // });
-
-db.connect((err) => {
-  if (err) {
-    console.error("Connection error:", err);
-    return;
-  }
-  console.log("Connected to Railway MySQL!");
-});
