@@ -3,7 +3,7 @@ import mysql from "mysql2";
 export const db = mysql.createPool({
   host: "gondola.proxy.rlwy.net",
   user: "root",
-  password: "SapcHwjQrkjCzeQxtkDilJYkavpNbLspve",
+  password: "pcHwjQrkjCzeQxtkDilJYkavpNbLspve",
   database: "railway",
   port: 34051,
 });
